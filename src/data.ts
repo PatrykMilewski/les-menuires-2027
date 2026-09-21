@@ -37,6 +37,6 @@ export function flightLink(week:Week, party:Party):string {
 export function lodgingSearch(stay:Stay, week:Week, party:Party):string {
   return 'https://www.booking.com/searchresults.pl.html?' + new URLSearchParams({ss:stay.name+' Les Menuires',checkin:weeks[week].start,checkout:weeks[week].end,group_adults:String(party),no_rooms:'1',group_children:'0'}).toString();
 }
-export function bagCount(party:Party):number {return Math.ceil(party/2);}
-export function flightCost(party:Party, week:Week='early'):number {return baseFares[week]+501.44+205.14*bagCount(party)/party;}
-export function busCost(party:Party):number {return 97.5+8*bagCount(party)/party;}
+export const suitcasePerPerson = 205.14 / 2;
+export function flightCost(week:Week='early'):number {return baseFares[week]+501.44+suitcasePerPerson;}
+export function busCost():number {return 97.5+8/2;}
