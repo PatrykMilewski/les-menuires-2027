@@ -1,7 +1,14 @@
-import {baseFares, suitcasePerPerson, busCost, flightCost, fx, flightLink, weeks, type Party, type Week} from './data';
+import {baseFares, suitcasePerPerson, busCost, flightCost, fx, flightLink, weeks, type Party, type Week, type Stay} from './data';
 
 const money=(n:number)=>n.toLocaleString('pl-PL',{maximumFractionDigits:0})+' zł';
 const search=(out:string,back:string,party:Party)=>`https://www.skyscanner.pl/transport/loty/waw/lys/${out}/${back}/?adults=${party}&adultsv2=${party}&cabinclass=economy&rtn=1`;
+export function ownTravelComparison(party:Party,stay:Stay,pass:number):string {
+ const rows=(Object.keys(weeks) as Week[]).map(week=>{
+  const rent=stay.prices[week];
+  return `<tr><th scope="row">${weeks[week].label}</th><td>${rent===null?'Do sprawdzenia':money(rent*fx.eur/party)}</td><td>${money(pass*fx.eur)}</td><td><b>${rent===null?'Niepełna wycena':money(rent*fx.eur/party+pass*fx.eur)}</b></td></tr>`;
+ }).join('');
+ return `<div id="terminy"><p class="eyebrow">DOJAZD WŁASNY · CENY NA OSOBĘ</p><h2>Porównaj koszt pobytu.</h2><p>${stay.name} · ${party} os. · 7 noclegów + 6 dni wybranego skipassa. Tabela uwzględnia aktualnie wybrany nocleg i skipass.</p><div class="date-table"><table><caption>Pobyt bez kosztów podróży</caption><thead><tr><th>Termin 2027</th><th>Nocleg</th><th>Skipass</th><th>Razem / osoba</th></tr></thead><tbody>${rows}</tbody></table></div><p class="footnote">Koszt dojazdu własnego nie jest wyceniony ani wliczony. Poza sumą także jedzenie, ubezpieczenie i ewentualne dodatki noclegowe. Cennik nie potwierdza dostępności.</p></div>`;
+}
 export function dateComparison(party:Party):string {
  const rows=(['early','late','turn','feb'] as Week[]).map(week=>{
   const rent=week==='early'?1080:week==='feb'?1790:1150;
