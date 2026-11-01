@@ -1,111 +1,292 @@
-import {dateComparison,ownTravelComparison} from './date-comparison';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import './style.css';
-import {baseFares,suitcasePerPerson,busCost,flightCost,flightLink,fx,lodgingSearch,sources,stays,weeks,type Party,type Stay,type Week} from './data';
+import { dateComparison, ownTravelComparison } from "./date-comparison";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "./style.css";
+import {
+  baseFares,
+  flightFareDate,
+  flightFareNote,
+  suitcasePerPerson,
+  busCost,
+  flightCost,
+  flightLink,
+  fx,
+  lodgingSearch,
+  sources,
+  stays,
+  weeks,
+  type Party,
+  type Stay,
+  type Week,
+} from "./data";
 
-let party:Party=4;
-let week:Week='late';
-let selected='pelvoux';
-let pass=421;
-let selfDrive=false;
-const format=(n:number,digits=0)=>n.toLocaleString('pl-PL',{minimumFractionDigits:digits,maximumFractionDigits:digits});
-const pln=(n:number)=>`${format(n)} zł`;
-const link=(url:string,label:string,cls='')=>`<a class="${cls}" href="${url}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`;
-function el(id:string):HTMLElement {const node=document.getElementById(id);if(!node)throw new Error(id);return node;}
-const title=(tag:string,heading:string,description:string)=>`<div class="section-title"><div><p class="eyebrow">${tag}</p><h2>${heading}</h2></div><p>${description}</p></div>`;
-function hero():string {
- return `<a class="skip" href="#koszty">Przejdź do planu</a><header><a href="#" class="brand">▲ ALPY / 27</a><nav aria-label="Nawigacja"><a href="#koszty">Koszty</a><a href="#terminy">Terminy</a><a href="#dojazd">Dojazd</a><a href="#noclegi">Noclegi</a><a href="#trasy">Trasy</a></nav><a class="sibling" href="https://patrykmilewski.github.io/sestriere-2027/">Sestriere ↗</a></header>
+let party: Party = 4;
+let week: Week = "late";
+let selected = "pelvoux";
+let pass = 421;
+let selfDrive = false;
+const format = (n: number, digits = 0) =>
+  n.toLocaleString("pl-PL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const pln = (n: number) => `${format(n)} zł`;
+const link = (url: string, label: string, cls = "") =>
+  `<a class="${cls}" href="${url}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`;
+function el(id: string): HTMLElement {
+  const node = document.getElementById(id);
+  if (!node) throw new Error(id);
+  return node;
+}
+const title = (tag: string, heading: string, description: string) =>
+  `<div class="section-title"><div><p class="eyebrow">${tag}</p><h2>${heading}</h2></div><p>${description}</p></div>`;
+function hero(): string {
+  return `<a class="skip" href="#koszty">Przejdź do planu</a><header><a href="#" class="brand">▲ ALPY / 27</a><nav aria-label="Nawigacja"><a href="#koszty">Koszty</a><a href="#terminy">Terminy</a><a href="#dojazd">Dojazd</a><a href="#noclegi">Noclegi</a><a href="#trasy">Trasy</a></nav><a class="sibling" href="https://patrykmilewski.github.io/sestriere-2027/">Sestriere ↗</a></header>
  <section class="hero"><div class="hero-copy"><p class="eyebrow">FRANCJA · LES 3 VALLÉES · STYCZEŃ / LUTY / MARZEC 2027</p><h1>TRZY DOLINY.<br><em>JEDNA EKIPA.</em></h1><p class="intro">Les Menuires. Tydzień blisko stoków,<br>sześć dni na desce i plan od Gdańska<br>aż pod alpejskie szczyty.</p><a class="button gold" href="#koszty">Zaplanuj nasz tydzień <span>↓</span></a><div class="facts"><div><b>1 850<small> m</small></b><span>wysokość miejscowości</span></div><div><b>600<small> km</small></b><span>tras w całych 3 Vallées*</span></div><div><b>6<small> dni</small></b><span>jazdy · 7 noclegów</span></div></div></div><div class="hero-map"><img src="./mapa-tras.jpg" alt="Panorama tras Les 3 Vallées z Les Menuires" fetchpriority="high"><div class="map-caption"><span>BAZA WYPADOWA</span><b>LES MENUIRES</b><a href="#trasy">Odkryj mapę tras →</a></div></div></section><div class="route-strip"><b>GDAŃSK</b><span>pociąg →</span><b>WARSZAWA</b><span>samolot →</span><b>LYON</b><span>Ben’s Bus →</span><b>LES MENUIRES</b></div>`;
 }
-function controls():string {
- return `<section id="koszty" class="section">${title('01 / WSPÓLNY PLAN','Ile za ten tydzień?','Każda cena na osobę. Wybierz wielkość ekipy i nocleg. Kwoty w złotych służą do planowania.')}<div class="controls"><div><label>Sposób dojazdu</label><div class="segments"><button data-travel="flight" aria-pressed="true">Samolot + transfer</button><button data-travel="own" aria-pressed="false">Dojazd własny</button></div></div><div><label>Liczba dorosłych</label><div class="segments">${([2,4,5,6] as Party[]).map(p=>`<button data-party="${p}" aria-pressed="${party===p}">${p} os.</button>`).join('')}</div></div><div><label>Termin · 2027</label><div class="segments"><button data-week="late" aria-pressed="true">23–30 sty</button><button data-week="feb" aria-pressed="false">6–13 lut</button><button data-week="febLate" aria-pressed="false">20–27 lut</button><button data-week="march" aria-pressed="false">6–13 mar</button></div></div><p class="exchange">1 € = 4,30 zł · £1 = 5,10 zł<br><small>Kursy założone, nie kursy banku</small></p></div><div id="budget" aria-live="polite"></div><div id="comparison"></div></section>`;
+function controls(): string {
+  return `<section id="koszty" class="section">${title("01 / WSPÓLNY PLAN", "Ile za ten tydzień?", "Każda cena na osobę. Wybierz wielkość ekipy i nocleg. Kwoty w złotych służą do planowania.")}<div class="controls"><div><label>Sposób dojazdu</label><div class="segments"><button data-travel="flight" aria-pressed="true">Samolot + transfer</button><button data-travel="own" aria-pressed="false">Dojazd własny</button></div></div><div><label>Liczba dorosłych</label><div class="segments">${([2, 4, 5, 6] as Party[]).map((p) => `<button data-party="${p}" aria-pressed="${party === p}">${p} os.</button>`).join("")}</div></div><div><label>Termin · 2027</label><div class="segments"><button data-week="late" aria-pressed="true">23–30 sty</button><button data-week="feb" aria-pressed="false">6–13 lut</button><button data-week="febLate" aria-pressed="false">20–27 lut</button><button data-week="march" aria-pressed="false">6–13 mar</button></div></div><p class="exchange">1 € = 4,30 zł · £1 = 5,10 zł<br><small>Kursy założone, nie kursy banku</small></p></div><div id="budget" aria-live="polite"></div><div id="comparison"></div></section>`;
 }
-function costRow(name:string,amount:string,note:string):string {return `<div class="cost-row"><div><h3>${name}</h3><p>${note}</p></div><strong>${amount}</strong></div>`;}
-function budget():string {
- const stay=stays.find(s=>s.id===selected)??stays[0];const room=stay.prices[week];
- const flight=flightCost(week);
- const bus=busCost()*fx.gbp;
- const total=room!==null?room*fx.eur/party+pass*fx.eur+(selfDrive?0:flight+bus):null;
- const rows=[costRow('Loty z całym bagażem','≈ '+pln(flight),`W obie strony · własny snowboard + ½ walizki 20 kg (jedna walizka na 2 osoby). ${'SZACUNEK: bilet dla wybranego terminu + opłaty za bagaże z wcześniejszego sprawdzenia, do potwierdzenia.'}`),costRow(stay.name,room===null?'Do sprawdzenia':pln(room*fx.eur/party),`7 nocy · ${party} os. w lokalu · bez wyżywienia. ${room===null?'Brak wyceny na wybrany termin.':'Cennik właściciela, dostępność i dodatki do potwierdzenia.'}`),costRow(pass===421?'Skipass Les 3 Vallées':'Skipass Les Menuires–Saint-Martin',pln(pass*fx.eur),`${format(pass)} € · 6 dni · ${weeks[week].ski} · dorosły · bez ubezpieczenia i ewentualnego nośnika`),costRow('Ben’s Bus z bagażem',pln(bus),`£${format(busCost(),2)} · w obie strony · na osobę: własny snowboard + ½ walizki 20 kg (jedna walizka na 2 osoby). ${'Taryfa sezonowa; dopłata za walizki z wcześniejszego sprawdzenia, kursy do potwierdzenia.'}`),costRow('Pociąg + dojazd na Chopina','200–400 zł','Rezerwa na osobę w obie strony. Brak potwierdzonej taryfy i rozkładu PKP na te dni; ewentualny nocleg w Warszawie osobno.')];
- return `<div class="budget-layout"><div>${(selfDrive?rows.slice(1,3):rows).join('')}<p class="footnote">${selfDrive?'Koszty dojazdu własnego nie są wycenione ani wliczone. ':''}Poza sumą: jedzenie (rezerwa 700–1 000 zł/os.), ubezpieczenie snowboardowe, ewentualne podatki / sprzątanie / pościel, kaucja zwrotna.${selfDrive?'':' Dojazd na dworzec w Gdańsku i nocleg w Warszawie nie są wliczone.'}</p></div><aside class="ticket"><p class="eyebrow">${weeks[week].label} 2027 · ${party} OS.</p><h3>${stay.name}</h3><span class="badge">${selfDrive?'Dojazd własny · nocleg + skipass':'Snowboard ujęty SZACUNKOWO · opłata do potwierdzenia'}</span><p class="total-label">${total===null?'Niepełna wycena':'Orientacyjny koszt podstawowy'}</p><strong class="total">${total===null?'—':`${selfDrive?format(total):format(total+200)+'–'+format(total+400)}`}</strong><b>${total===null?'Brakujące ceny nie są liczone jako zero.':'zł / osoba'}</b><p>${selfDrive?'7 noclegów i 6-dniowy skipass. Koszt podróży samochodem poza sumą.':'Loty, bagaże, 7 nocy, 6-dniowy skipass, transfer i rezerwa kolejowa.'} To budżet, nie gwarantowana cena pakietu.</p><a href="#noclegi">Wybierz inny nocleg ↓</a></aside></div>`;
+function costRow(name: string, amount: string, note: string): string {
+  return `<div class="cost-row"><div><h3>${name}</h3><p>${note}</p></div><strong>${amount}</strong></div>`;
 }
-function comparison():string {return selfDrive?ownTravelComparison(party,stays.find(s=>s.id===selected)??stays[0],pass):dateComparison(party);}
-function flights():string {
- return `${title('02 / LOTY I BAGAŻ','Deska też leci.','Cena na osobę zawiera szacunkowy koszt własnego snowboardu i połowy walizki 20 kg, w obie strony. Opłaty wymagają potwierdzenia dla wybranego terminu.')}<div class="baggage-banner"><b>${'BAGAŻ UJĘTY SZACUNKOWO — OPŁATA DLA TEJ DATY DO POTWIERDZENIA'}</b><p>Na osobę: własny pokrowiec snowboardowy + ½ walizki 20 kg — jedna walizka na 2 osoby. Cena obejmuje przewóz w obie strony.</p></div><div class="flight-board"><div><span>TAM · ${weeks[week].start}</span><b>11:45 <i>→</i> 14:15</b><p>Warszawa Chopina → Lyon<br>Wizz Air W61309 · 2 h 30 min</p></div><div><span>POWRÓT · ${weeks[week].end}</span><b>14:55 <i>→</i> 17:15</b><p>Lyon → Warszawa Chopina<br>Wizz Air W61310 · 2 h 20 min</p></div></div><div class="flight-costs"><div><span>Bilet bez dodatków</span><b>${format(baseFares[week],2)+' zł'}</b><small>na osobę, oba loty${' · Skyscanner, bez koszyka Wizz'}</small></div><div><span>Własny snowboard</span><b>${'≈ 501,44 zł'}</b><small>${'Rezerwa według wcześniej sprawdzonej stawki'}</small></div><div><span>Walizka 20 kg na 2 osoby</span><b>${'≈ '+format(suitcasePerPerson,2)+' zł/os.'}</b><small>Na osobę, w obie strony · ½ walizki 20 kg (jedna walizka na 2 osoby)</small></div><div class="flight-total"><span>Razem loty + bagaże</span><b>${'≈ '+format(flightCost(week),2)+' zł'}</b><small>na osobę w obie strony</small></div></div><p class="footnote">Odczyt 21.09.2026: w Wizz bilety dla 2 osób kosztowały 696 zł, po dodaniu jednej walizki 20 kg na oba loty 901,14 zł; widoczna stawka sprzętu 250,72 zł za odcinek. Suma powyżej jest kalkulacją, nie zatwierdzonym koszykiem ze wszystkimi snowboardami. Dla 23–30 stycznia i 6–13 lutego bilety odczytano ze Skyscannera 21.09.2026, a dla 20–27 lutego i 6–13 marca — 22.09.2026. We wszystkich wariantach opłaty bagażowe przeniesiono wyłącznie jako szacunek z wcześniejszego sprawdzenia innego terminu. Bez Discount Club, Priority i płatnego wyboru miejsc. Mały bagaż pod siedzenie w taryfie Basic. Rozkład może się zmienić.</p><div class="links">${link(flightLink(week,party),'Sprawdź loty dla naszej grupy','button dark')}${link(sources.flights,'Wizz Air · kup bezpośrednio','button outline')}</div>`;
+function budget(): string {
+  const stay = stays.find((s) => s.id === selected) ?? stays[0];
+  const room = stay.prices[week];
+  const flight = flightCost(week);
+  const bus = busCost() * fx.gbp;
+  const total = room !== null ? (room * fx.eur) / party + pass * fx.eur + (selfDrive ? 0 : flight + bus) : null;
+  const rows = [
+    costRow(
+      "Loty z całym bagażem",
+      "≈ " + pln(flight),
+      `W obie strony · własny snowboard + ½ walizki 20 kg (jedna walizka na 2 osoby). ${"SZACUNEK: bilet dla wybranego terminu + opłaty za bagaże z wcześniejszego sprawdzenia, do potwierdzenia."}`,
+    ),
+    costRow(
+      stay.name,
+      room === null ? "Do sprawdzenia" : pln((room * fx.eur) / party),
+      `7 nocy · ${party} os. w lokalu · bez wyżywienia. ${room === null ? "Brak wyceny na wybrany termin." : "Cennik poglądowy: Pelvoux/Jettay zajęte według odczytu 01.11.2026; sprawdź dostępny zamiennik."}`,
+    ),
+    costRow(
+      pass === 421 ? "Skipass Les 3 Vallées" : "Skipass Les Menuires–Saint-Martin",
+      pln(pass * fx.eur),
+      `${format(pass)} € · 6 dni · ${weeks[week].ski} · dorosły · bez ubezpieczenia i ewentualnego nośnika`,
+    ),
+    costRow(
+      "Ben’s Bus z bagażem",
+      pln(bus),
+      `£${format(busCost(), 2)} · w obie strony · na osobę: własny snowboard + ½ walizki 20 kg (jedna walizka na 2 osoby). ${"Taryfa sezonowa; dopłata za walizki z wcześniejszego sprawdzenia, kursy do potwierdzenia."}`,
+    ),
+    costRow(
+      "Pociąg + dojazd na Chopina",
+      "200–400 zł",
+      "Rezerwa na osobę w obie strony. Brak potwierdzonej taryfy i rozkładu PKP na te dni; ewentualny nocleg w Warszawie osobno.",
+    ),
+  ];
+  return `<div class="budget-layout"><div>${(selfDrive ? rows.slice(1, 3) : rows).join("")}<p class="footnote">${selfDrive ? "Koszty dojazdu własnego nie są wycenione ani wliczone. " : ""}Poza sumą: jedzenie (rezerwa 700–1 000 zł/os.), ubezpieczenie snowboardowe, ewentualne podatki / sprzątanie / pościel, kaucja zwrotna.${selfDrive ? "" : " Dojazd na dworzec w Gdańsku i nocleg w Warszawie nie są wliczone."}</p></div><aside class="ticket"><p class="eyebrow">${weeks[week].label} 2027 · ${party} OS.</p><h3>${stay.name}</h3><span class="badge">${selfDrive ? "Dojazd własny · nocleg + skipass" : "Snowboard ujęty SZACUNKOWO · opłata do potwierdzenia"}</span><p class="total-label">${total === null ? "Niepełna wycena" : "Orientacyjny koszt podstawowy"}</p><strong class="total">${total === null ? "—" : `${selfDrive ? format(total) : format(total + 200) + "–" + format(total + 400)}`}</strong><b>${total === null ? "Brakujące ceny nie są liczone jako zero." : "zł / osoba"}</b><p>${selfDrive ? "7 noclegów i 6-dniowy skipass. Koszt podróży samochodem poza sumą." : "Loty, bagaże, 7 nocy, 6-dniowy skipass, transfer i rezerwa kolejowa."} To budżet, nie gwarantowana cena pakietu.</p><a href="#noclegi">Wybierz inny nocleg ↓</a></aside></div>`;
 }
-function travel():string {
- return `<section class="section tinted" id="dojazd">${title('03 / OD DWORCA POD STOK','Cały dzień w drodze.','Poniższe godziny autobusów są przykładem z wcześniejszego sprawdzenia innego terminu; dla wybranej daty wymagają potwierdzenia. Pociągi to założenia do planowania, nie gotowy rozkład.')}<div class="duration"><strong>około 13–15 godzin</strong><p>Od wyjazdu pociągiem z Gdańska do noclegu w Les Menuires. Od wylotu z Warszawy około 7–8 godzin. Uwzględnia odbiór bagażu, oczekiwanie i dojście do noclegu; przy korkach lub późniejszym autobusie dłużej.</p></div><div class="transport-grid"><div><div class="segments"><button data-direction="out" aria-pressed="true">Jedziemy w Alpy</button><button data-direction="back" aria-pressed="false">Wracamy do domu</button></div><div id="journey"></div></div><div><div id="transport-map" class="map" aria-label="Mapa trasy Lyon–Les Menuires"></div><p class="footnote">Schemat przebiegu przez Chambéry, Albertville i Moûtiers. Linia orientacyjna, nie nawigacja drogowa.</p></div></div><div class="transport-notes"><article><h3>Bez przesiadki w centrum Lyonu</h3><p>Ben’s Bus odjeżdża z lotniska Lyon Saint-Exupéry: dworzec autobusowy przy Terminalu 1, stanowiska 11/12 według operatora. Jedzie do Gare Routière w Les Menuires; czasem wymaga zmiany autobusu po drodze.</p></article><article><h3>Ważne przy dużych pokrowcach</h3><p>Ben’s Bus: 1 duży bagaż na osobę w cenie — może nim być snowboard. Wspólna walizka jest dodatkową sztuką: £8 w obie strony, czyli £4/os. przy parze. Pokrowiec na buty poza torbą może liczyć się osobno.</p></article><article><h3>Pociąg do Warszawy</h3><p>Wybierz połączenie z przyjazdem na Warszawę Centralną około 08:30 lub wcześniej. Potem kolej miejska / regionalna na lotnisko; przejścia i oczekiwanie zaplanuj na 45–60 min. Rozkład, taryfę i przewóz pokrowca w PKP trzeba sprawdzić dla konkretnego kursu.</p></article><article><h3>Zapas na lot i zakwaterowanie</h3><p>Cel: Chopin najpóźniej około 09:30. Jeśli nie będzie odpowiednio wczesnego pociągu, przyjazd w piątek i dodatkowy nocleg. Potwierdź odbiór kluczy po 19:00 oraz poranne wymeldowanie przed autobusem.</p></article></div><div class="links">${link(sources.busBooking,'Sprawdź i zarezerwuj Ben’s Bus','button dark')}${link(sources.train,'Rozkład i bilety Intercity','button outline')}${link(sources.local,'Dojazd na lotnisko Chopina','button outline')}</div></section>`;
+function comparison(): string {
+  return selfDrive
+    ? ownTravelComparison(party, stays.find((s) => s.id === selected) ?? stays[0], pass)
+    : dateComparison(party);
 }
-function journey(back=false):string {
- const steps=back?[
- ['07:45–08:00','Na Gare Routière','Orientacyjna zbiórka. Dojście z wybranego noclegu trzeba doliczyć.'],
- ['08:15 → 11:35','Les Menuires → lotnisko Lyon','Przykładowe godziny z wcześniejszego sprawdzenia Ben’s Bus; wybrany termin do potwierdzenia. Przyjazd 3 h 20 min przed odlotem.'],
- ['14:55 → 17:15','Lyon → Warszawa Chopina','Wizz Air W61310. Odbiór pokrowców i walizki: załóż 45–60 min.'],
- ['około 19:00 lub później','Pociąg do Gdańska','Dobierz kurs dopiero po sprawdzeniu rozkładu. Zostaw zapas po przylocie i na dojazd na dworzec.'],
- ['około 22:00–23:30','Gdańsk','Szacunek zależny od pociągu. Powrót od wyjścia z noclegu około 14–16 godzin.']
- ]:[
- ['około 05:00–05:30','Gdańsk → Warszawa','Założenie: wczesny pociąg z przyjazdem na Centralną do ok. 08:30. Kurs i bilet jeszcze do potwierdzenia.'],
- ['do około 09:30','Lotnisko Chopina','Dojazd z dworca, odprawa, oddanie walizki i sprzętu sportowego.'],
- ['11:45 → 14:15','Warszawa → Lyon','Wizz Air W61309; po lądowaniu ok. 50 min na bagaże, do ok. 15:05.'],
- ['około 15:25','Ben’s Bus do Les Menuires','Przykładowy kurs z wcześniejszego sprawdzenia dla przylotu 14:15; wybrany termin do potwierdzenia. Na przejście po bagażach zostaje ok. 20 min. Późniejsze opcje: 17:35 i 19:10. To nie linia kursująca co 15–30 min.'],
- ['około 18:30–19:30','Gare Routière → nocleg','Przejazd około 3–3 h 40 min + dojście lub lokalny skibus. Późniejszy autobus oznacza późne zameldowanie.']
- ];return `<ol class="timeline">${steps.map(([time,name,note])=>`<li><time>${time}</time><h3>${name}</h3><p>${note}</p></li>`).join('')}</ol>`;
+function flights(): string {
+  return `${title("02 / LOTY I BAGAŻ", "Deska też leci.", "Cena na osobę zawiera szacunkowy koszt własnego snowboardu i połowy walizki 20 kg, w obie strony. Opłaty wymagają potwierdzenia dla wybranego terminu.")}<div class="baggage-banner"><b>${"BAGAŻ UJĘTY SZACUNKOWO — OPŁATA DLA TEJ DATY DO POTWIERDZENIA"}</b><p>Na osobę: własny pokrowiec snowboardowy + ½ walizki 20 kg — jedna walizka na 2 osoby. Cena obejmuje przewóz w obie strony.</p></div><div class="flight-board"><div><span>TAM · ${weeks[week].start}</span><b>11:45 <i>→</i> 14:15</b><p>Warszawa Chopina → Lyon<br>Wizz Air W61309 · 2 h 30 min</p></div><div><span>POWRÓT · ${weeks[week].end}</span><b>14:55 <i>→</i> 17:15</b><p>Lyon → Warszawa Chopina<br>Wizz Air W61310 · 2 h 20 min</p></div></div><div class="flight-costs"><div><span>Bilet bez dodatków</span><b>${format(baseFares[week], 2) + " zł"}</b><small>na osobę, oba loty · Wizz Air · ${flightFareDate}</small></div><div><span>Własny snowboard</span><b>${"≈ 501,44 zł"}</b><small>${"Rezerwa według wcześniej sprawdzonej stawki"}</small></div><div><span>Walizka 20 kg na 2 osoby</span><b>${"≈ " + format(suitcasePerPerson, 2) + " zł/os."}</b><small>Na osobę, w obie strony · ½ walizki 20 kg (jedna walizka na 2 osoby)</small></div><div class="flight-total"><span>Razem loty + bagaże</span><b>${"≈ " + format(flightCost(week), 2) + " zł"}</b><small>na osobę w obie strony</small></div></div><p class="footnote">${flightFareNote} Bagaż jest oddzielnym szacunkiem według odczytu z 21.09.2026: wspólna walizka 20 kg kosztowała 205,14 zł w obie strony, a sprzęt 250,72 zł za odcinek i osobę. Suma powyżej jest kalkulacją, nie zatwierdzonym koszykiem ze wszystkimi snowboardami. Opłaty bagażowe, ewentualny Discount Club, Priority i wybór miejsc wymagają sprawdzenia dla wybranej taryfy. Rozkład może się zmienić.</p><div class="links">${link(flightLink(week, party), "Sprawdź loty dla naszej grupy", "button dark")}${link(sources.flights, "Wizz Air · kup bezpośrednio", "button outline")}</div>`;
 }
-function stayCard(stay:Stay,index:number):string {
- const price=stay.prices[week];return `<article class="stay ${selected===stay.id?'chosen':''}"><div class="stay-top"><span class="number">${String(index+1).padStart(2,'0')}</span><div><p class="eyebrow">${stay.area}</p><h3>${stay.name}</h3></div><span class="capacity">${stay.capacity}</span></div><p class="access">↗ ${stay.access}</p><p>${stay.beds}</p><div class="stay-price"><div><small>${party} os. · 7 nocy · na osobę</small><strong>${price===null?'Do sprawdzenia':pln(price*fx.eur/party)}</strong><small>${price===null?'Brak potwierdzonej ceny na wybrane daty':format(price/party,2)+' € / osoba · według cennika'}</small></div><button class="button ${selected===stay.id?'dark':'outline'}" data-stay="${stay.id}" aria-pressed="${selected===stay.id}">${selected===stay.id?'Wybrany nocleg':'Wybierz i pokaż na mapie'}</button></div><details><summary>Co obejmuje oferta i co sprawdzić</summary><p>${stay.note}</p></details><div class="links compact">${link(stay.url,'Opis obiektu')}${stay.priceUrl?link(stay.priceUrl,'Cennik właściciela'):''}${link(lodgingSearch(stay,week,party),`Szukaj dla ${party} os. · ${weeks[week].label}`)}</div></article>`;
+function travel(): string {
+  return `<section class="section tinted" id="dojazd">${title("03 / OD DWORCA POD STOK", "Cały dzień w drodze.", "Poniższe godziny autobusów są przykładem z wcześniejszego sprawdzenia innego terminu; dla wybranej daty wymagają potwierdzenia. Pociągi to założenia do planowania, nie gotowy rozkład.")}<div class="duration"><strong>około 13–15 godzin</strong><p>Od wyjazdu pociągiem z Gdańska do noclegu w Les Menuires. Od wylotu z Warszawy około 7–8 godzin. Uwzględnia odbiór bagażu, oczekiwanie i dojście do noclegu; przy korkach lub późniejszym autobusie dłużej.</p></div><div class="transport-grid"><div><div class="segments"><button data-direction="out" aria-pressed="true">Jedziemy w Alpy</button><button data-direction="back" aria-pressed="false">Wracamy do domu</button></div><div id="journey"></div></div><div><div id="transport-map" class="map" aria-label="Mapa trasy Lyon–Les Menuires"></div><p class="footnote">Schemat przebiegu przez Chambéry, Albertville i Moûtiers. Linia orientacyjna, nie nawigacja drogowa.</p></div></div><div class="transport-notes"><article><h3>Bez przesiadki w centrum Lyonu</h3><p>Ben’s Bus odjeżdża z lotniska Lyon Saint-Exupéry: dworzec autobusowy przy Terminalu 1, stanowiska 11/12 według operatora. Jedzie do Gare Routière w Les Menuires; czasem wymaga zmiany autobusu po drodze.</p></article><article><h3>Ważne przy dużych pokrowcach</h3><p>Ben’s Bus: 1 duży bagaż na osobę w cenie — może nim być snowboard. Wspólna walizka jest dodatkową sztuką: £8 w obie strony, czyli £4/os. przy parze. Pokrowiec na buty poza torbą może liczyć się osobno.</p></article><article><h3>Pociąg do Warszawy</h3><p>Wybierz połączenie z przyjazdem na Warszawę Centralną około 08:30 lub wcześniej. Potem kolej miejska / regionalna na lotnisko; przejścia i oczekiwanie zaplanuj na 45–60 min. Rozkład, taryfę i przewóz pokrowca w PKP trzeba sprawdzić dla konkretnego kursu.</p></article><article><h3>Zapas na lot i zakwaterowanie</h3><p>Cel: Chopin najpóźniej około 09:30. Jeśli nie będzie odpowiednio wczesnego pociągu, przyjazd w piątek i dodatkowy nocleg. Potwierdź odbiór kluczy po 19:00 oraz poranne wymeldowanie przed autobusem.</p></article></div><div class="links">${link(sources.busBooking, "Sprawdź i zarezerwuj Ben’s Bus", "button dark")}${link(sources.train, "Rozkład i bilety Intercity", "button outline")}${link(sources.local, "Dojazd na lotnisko Chopina", "button outline")}</div></section>`;
 }
-function ski():string {
- return `<section class="section" id="trasy">${title('05 / NASZE TERENY','Rano wybierasz dolinę.','Twoja mapa tras, z zaznaczoną orientacyjną okolicą wybranego noclegu. Powiększ, aby obejrzeć połączenia.')}<div class="map-heading"><p id="map-stay"></p><button id="reset-map" class="button outline">Pokaż całe 3 Vallées</button></div><div id="piste-map" aria-label="Interaktywna mapa tras 3 Vallées z proponowanym noclegiem"></div><p class="footnote">Znacznik pokazuje orientacyjny rejon bazy na rysunkowej panoramie, nie dokładny adres ani odległość do wyciągu. Nocleg jest propozycją, bez rezerwacji. ${link('./mapa-tras.jpg','Otwórz mapę w pełnej rozdzielczości')}</p><div class="pass-grid"><button class="pass-card" data-pass="421" aria-pressed="true"><span>CAŁY REGION</span><h3>Les 3 Vallées</h3><strong>421 € <small>/ osoba</small></strong><p>6 dni · ${pln(421*fx.eur)} · cena katalogowa 2026/27.<br>Les Menuires, Val Thorens, Méribel i Courchevel. Wariant bazowy dla wycieczek po regionie.</p></button><button class="pass-card" data-pass="350" aria-pressed="false"><span>WARIANT LOKALNY</span><h3>Les Menuires–Saint-Martin</h3><strong>350 € <small>/ osoba</small></strong><p>6 dni · ${pln(350*fx.eur)} · oszczędzasz ${pln(71*fx.eur)}.<br>Bez Val Thorens, Méribel i Courchevel. Dobry, jeśli chcecie jeździć blisko bazy.</p></button></div><p class="footnote">Ceny dla dorosłych; bez ubezpieczenia i ewentualnego nośnika. *600 km to deklarowana sieć całych 3 Vallées, nie gwarancja otwarcia wszystkich tras. Połączenia zależą od wiatru i warunków. ${link(sources.pass,'Oficjalny cennik 2026/27')} · ${link(sources.passBuy,'Kup skipass')}</p></section>`;
+function journey(back = false): string {
+  const steps = back
+    ? [
+        ["07:45–08:00", "Na Gare Routière", "Orientacyjna zbiórka. Dojście z wybranego noclegu trzeba doliczyć."],
+        [
+          "08:15 → 11:35",
+          "Les Menuires → lotnisko Lyon",
+          "Przykładowe godziny z wcześniejszego sprawdzenia Ben’s Bus; wybrany termin do potwierdzenia. Przyjazd 3 h 20 min przed odlotem.",
+        ],
+        ["14:55 → 17:15", "Lyon → Warszawa Chopina", "Wizz Air W61310. Odbiór pokrowców i walizki: załóż 45–60 min."],
+        [
+          "około 19:00 lub później",
+          "Pociąg do Gdańska",
+          "Dobierz kurs dopiero po sprawdzeniu rozkładu. Zostaw zapas po przylocie i na dojazd na dworzec.",
+        ],
+        ["około 22:00–23:30", "Gdańsk", "Szacunek zależny od pociągu. Powrót od wyjścia z noclegu około 14–16 godzin."],
+      ]
+    : [
+        [
+          "około 05:00–05:30",
+          "Gdańsk → Warszawa",
+          "Założenie: wczesny pociąg z przyjazdem na Centralną do ok. 08:30. Kurs i bilet jeszcze do potwierdzenia.",
+        ],
+        ["do około 09:30", "Lotnisko Chopina", "Dojazd z dworca, odprawa, oddanie walizki i sprzętu sportowego."],
+        ["11:45 → 14:15", "Warszawa → Lyon", "Wizz Air W61309; po lądowaniu ok. 50 min na bagaże, do ok. 15:05."],
+        [
+          "około 15:25",
+          "Ben’s Bus do Les Menuires",
+          "Przykładowy kurs z wcześniejszego sprawdzenia dla przylotu 14:15; wybrany termin do potwierdzenia. Na przejście po bagażach zostaje ok. 20 min. Późniejsze opcje: 17:35 i 19:10. To nie linia kursująca co 15–30 min.",
+        ],
+        [
+          "około 18:30–19:30",
+          "Gare Routière → nocleg",
+          "Przejazd około 3–3 h 40 min + dojście lub lokalny skibus. Późniejszy autobus oznacza późne zameldowanie.",
+        ],
+      ];
+  return `<ol class="timeline">${steps.map(([time, name, note]) => `<li><time>${time}</time><h3>${name}</h3><p>${note}</p></li>`).join("")}</ol>`;
 }
-function weekPlan():string {
- const days=[['Niedziela','Poznajemy bazę','Les Menuires, spokojna rozgrzewka i sprawdzenie powrotu pod nocleg.'],['Poniedziałek','Pointe de la Masse','Lokalny dzień po drugiej stronie doliny, według warunków.'],['Wtorek','Val Thorens','Wyżej położone tereny. Wycieczka z pełnym skipassem 3 Vallées.'],['Środa','Méribel','Dzień w środkowej dolinie; kontrolujcie godziny wyciągów powrotnych.'],['Czwartek','Courchevel lub ulubione trasy','Dłuższa wyprawa tylko przy dobrej pogodzie i otwartych łącznikach.'],['Piątek','Ostatnie skręty','Jazda bliżej bazy, zakupy na drogę i pakowanie desek wieczorem.']];
- return `<section class="section tinted">${title('06 / RYTM TYGODNIA','Sześć dni, własne tempo.','Sobota na dojazd, niedziela–piątek na snowboard, kolejna sobota na powrót.')}<div class="days">${days.map(([day,name,note],i)=>`<article><span class="number">0${i+1}</span><p class="eyebrow">${day}</p><h3>${name}</h3><p>${note}</p></article>`).join('')}</div><p class="footnote">Przy lokalnym skipassie zastąpcie wycieczki do innych dolin jazdą w Les Menuires i Saint-Martin. Plan dopasujcie do umiejętności najsłabszej osoby oraz otwartych tras.</p></section>`;
+function stayCard(stay: Stay, index: number): string {
+  const price = stay.prices[week];
+  return `<article class="stay ${selected === stay.id ? "chosen" : ""}"><div class="stay-top"><span class="number">${String(index + 1).padStart(2, "0")}</span><div><p class="eyebrow">${stay.area}</p><h3>${stay.name}</h3></div><span class="capacity">${stay.capacity}</span></div><p class="access">↗ ${stay.access}</p><p>${stay.beds}</p><div class="stay-price"><div><small>${party} os. · 7 nocy · na osobę</small><strong>${price === null ? "Do sprawdzenia" : pln((price * fx.eur) / party)}</strong><small>${price === null ? "Brak potwierdzonej ceny na wybrane daty" : format(price / party, 2) + " € / osoba · według cennika"}</small></div><button class="button ${selected === stay.id ? "dark" : "outline"}" data-stay="${stay.id}" aria-pressed="${selected === stay.id}">${selected === stay.id ? "Wybrany nocleg" : "Wybierz i pokaż na mapie"}</button></div><details><summary>Co obejmuje oferta i co sprawdzić</summary><p>${stay.note}</p></details><div class="links compact">${link(stay.url, "Opis obiektu")}${stay.priceUrl ? link(stay.priceUrl, "Cennik właściciela") : ""}${link(lodgingSearch(stay, week, party), `Szukaj dla ${party} os. · ${weeks[week].label}`)}</div></article>`;
 }
-function sourceSection():string {
- return `<section class="section sources"><p class="eyebrow">ODCZYTY 21–22 WRZEŚNIA 2026</p><h2>Źródła, nie drobny druk.</h2><div class="links">${link(sources.bus,'Ben’s Bus · trasa i sezon')}${link(sources.busBooking,'Ben’s Bus · godziny i opłaty')}${link(sources.busBags,'Ben’s Bus · bagaże')}${link(sources.pass,'Skipassy 2026/27')}${link('https://lesmenuires.com/en','Ośrodek i aktualne warunki')}${link('https://lesmenuires-location.com/','Pelvoux i Jettay · właściciel')}</div><p>Plan podróży dla dorosłych, bez dokonanych rezerwacji. Ceny lotów i noclegów mogą się zmienić. Cennik nie oznacza dostępności. Przed zakupem potwierdź komplet: lot z bagażem, zgodny transfer, nocleg i połączenie kolejowe. Linki wyszukiwania noclegów mają daty i liczbę osób, ale mogą pokazać inne obiekty — sprawdź nazwę.</p></section><footer><b>▲ ALPY / 27</b><span>Les Menuires · plan dla ekipy</span><a href="#koszty">Wróć do kosztów ↑</a></footer>`;
+function ski(): string {
+  return `<section class="section" id="trasy">${title("05 / NASZE TERENY", "Rano wybierasz dolinę.", "Twoja mapa tras, z zaznaczoną orientacyjną okolicą wybranego noclegu. Powiększ, aby obejrzeć połączenia.")}<div class="map-heading"><p id="map-stay"></p><button id="reset-map" class="button outline">Pokaż całe 3 Vallées</button></div><div id="piste-map" aria-label="Interaktywna mapa tras 3 Vallées z proponowanym noclegiem"></div><p class="footnote">Znacznik pokazuje orientacyjny rejon bazy na rysunkowej panoramie, nie dokładny adres ani odległość do wyciągu. Nocleg jest propozycją, bez rezerwacji. ${link("./mapa-tras.jpg", "Otwórz mapę w pełnej rozdzielczości")}</p><div class="pass-grid"><button class="pass-card" data-pass="421" aria-pressed="true"><span>CAŁY REGION</span><h3>Les 3 Vallées</h3><strong>421 € <small>/ osoba</small></strong><p>6 dni · ${pln(421 * fx.eur)} · cena katalogowa 2026/27.<br>Les Menuires, Val Thorens, Méribel i Courchevel. Wariant bazowy dla wycieczek po regionie.</p></button><button class="pass-card" data-pass="350" aria-pressed="false"><span>WARIANT LOKALNY</span><h3>Les Menuires–Saint-Martin</h3><strong>350 € <small>/ osoba</small></strong><p>6 dni · ${pln(350 * fx.eur)} · oszczędzasz ${pln(71 * fx.eur)}.<br>Bez Val Thorens, Méribel i Courchevel. Dobry, jeśli chcecie jeździć blisko bazy.</p></button></div><p class="footnote">Ceny dla dorosłych; bez ubezpieczenia i ewentualnego nośnika. *600 km to deklarowana sieć całych 3 Vallées, nie gwarancja otwarcia wszystkich tras. Połączenia zależą od wiatru i warunków. ${link(sources.pass, "Oficjalny cennik 2026/27")} · ${link(sources.passBuy, "Kup skipass")}</p></section>`;
 }
-el('app').innerHTML=hero()+`<main>${controls()}<section class="section" id="own-travel" hidden><h2>Dojazd własny</h2><p>Kalkulator obejmuje 7 noclegów i 6-dniowy skipass. Paliwo, opłaty drogowe, parking i inne koszty samochodu pozostają poza wyceną.</p></section><section class="section" id="loty"></section>${travel()}<section class="section" id="noclegi">${title('04 / BAZA PRZY STOKACH','Gdzie śpimy?','Propozycje dla 2, 4, 5 i 6 osób. Dwa lokale mają cenniki na konkretne tygodnie; pozostałe wymagają wyceny.')}<p class="notice">Szukamy dostępu do tras przy obiekcie. Opis „przy stoku” nie potwierdza zimowego dojścia pieszo maks. 500 m do wyciągu. Przed rezerwacją sprawdź dokładny lokal i trasę z pokrowcem. Dla pary cel to do 2 000 zł/os. za 7 nocy; duże apartamenty mogą ten budżet przekroczyć.</p><div id="stays" class="stays"></div></section>${ski()}${weekPlan()}${sourceSection()}</main>`;
+function weekPlan(): string {
+  const days = [
+    ["Niedziela", "Poznajemy bazę", "Les Menuires, spokojna rozgrzewka i sprawdzenie powrotu pod nocleg."],
+    ["Poniedziałek", "Pointe de la Masse", "Lokalny dzień po drugiej stronie doliny, według warunków."],
+    ["Wtorek", "Val Thorens", "Wyżej położone tereny. Wycieczka z pełnym skipassem 3 Vallées."],
+    ["Środa", "Méribel", "Dzień w środkowej dolinie; kontrolujcie godziny wyciągów powrotnych."],
+    ["Czwartek", "Courchevel lub ulubione trasy", "Dłuższa wyprawa tylko przy dobrej pogodzie i otwartych łącznikach."],
+    ["Piątek", "Ostatnie skręty", "Jazda bliżej bazy, zakupy na drogę i pakowanie desek wieczorem."],
+  ];
+  return `<section class="section tinted">${title("06 / RYTM TYGODNIA", "Sześć dni, własne tempo.", "Sobota na dojazd, niedziela–piątek na snowboard, kolejna sobota na powrót.")}<div class="days">${days.map(([day, name, note], i) => `<article><span class="number">0${i + 1}</span><p class="eyebrow">${day}</p><h3>${name}</h3><p>${note}</p></article>`).join("")}</div><p class="footnote">Przy lokalnym skipassie zastąpcie wycieczki do innych dolin jazdą w Les Menuires i Saint-Martin. Plan dopasujcie do umiejętności najsłabszej osoby oraz otwartych tras.</p></section>`;
+}
+function sourceSection(): string {
+  return `<section class="section sources"><p class="eyebrow">LOTY ${flightFareDate} · POZOSTAŁE DANE: WRZESIEŃ 2026</p><h2>Źródła, nie drobny druk.</h2><div class="links">${link(sources.bus, "Ben’s Bus · trasa i sezon")}${link(sources.busBooking, "Ben’s Bus · godziny i opłaty")}${link(sources.busBags, "Ben’s Bus · bagaże")}${link(sources.pass, "Skipassy 2026/27")}${link("https://lesmenuires.com/en", "Ośrodek i aktualne warunki")}${link("https://lesmenuires-location.com/", "Pelvoux i Jettay · właściciel")}</div><p>Plan podróży dla dorosłych, bez dokonanych rezerwacji. ${flightFareNote} Ceny lotów i noclegów mogą się zmienić. Cennik nie oznacza dostępności. Przed zakupem potwierdź komplet: lot z bagażem, zgodny transfer, nocleg i połączenie kolejowe. Linki wyszukiwania noclegów mają daty i liczbę osób, ale mogą pokazać inne obiekty — sprawdź nazwę.</p></section><footer><b>▲ ALPY / 27</b><span>Les Menuires · plan dla ekipy</span><a href="#koszty">Wróć do kosztów ↑</a></footer>`;
+}
+el("app").innerHTML =
+  hero() +
+  `<main>${controls()}<section class="section" id="own-travel" hidden><h2>Dojazd własny</h2><p>Kalkulator obejmuje 7 noclegów i 6-dniowy skipass. Paliwo, opłaty drogowe, parking i inne koszty samochodu pozostają poza wyceną.</p></section><section class="section" id="loty"></section>${travel()}<section class="section" id="noclegi">${title("04 / BAZA PRZY STOKACH", "Gdzie śpimy?", "Propozycje dla 2, 4, 5 i 6 osób. Dwa lokale mają cenniki na konkretne tygodnie; pozostałe wymagają wyceny.")}<p class="notice">Szukamy dostępu do tras przy obiekcie. Opis „przy stoku” nie potwierdza zimowego dojścia pieszo maks. 500 m do wyciągu. Przed rezerwacją sprawdź dokładny lokal i trasę z pokrowcem. Dla pary cel to do 2 000 zł/os. za 7 nocy; duże apartamenty mogą ten budżet przekroczyć.</p><div id="stays" class="stays"></div></section>${ski()}${weekPlan()}${sourceSection()}</main>`;
 
-const panorama=L.map('piste-map',{crs:L.CRS.Simple,minZoom:-3,maxZoom:2,zoomSnap:0.25,scrollWheelZoom:false});
-const bounds:L.LatLngBoundsExpression=[[0,0],[1074,2048]];
-L.imageOverlay('./mapa-tras.jpg',bounds).addTo(panorama);panorama.fitBounds(bounds);
-const pin=L.circleMarker(stays[0].point,{radius:13,color:'#fff',weight:3,fillColor:'#b24f27',fillOpacity:1}).addTo(panorama);
-function refreshMap(focus=false):void {
- const stay=stays.find(s=>s.id===selected)??stays[0];pin.setLatLng(stay.point);
- pin.unbindTooltip().bindTooltip(stay.name+' · okolica',{permanent:true,direction:'top',className:'lodging-label'});
- pin.bindPopup(`<b>${stay.name}</b><br>${stay.area}<br>Orientacyjny rejon, bez rezerwacji.`);
- el('map-stay').textContent='Proponowana baza: '+stay.name+' · '+stay.area;
- if(focus)panorama.setView(stay.point,0);
+const panorama = L.map("piste-map", {
+  crs: L.CRS.Simple,
+  minZoom: -3,
+  maxZoom: 2,
+  zoomSnap: 0.25,
+  scrollWheelZoom: false,
+});
+const bounds: L.LatLngBoundsExpression = [
+  [0, 0],
+  [1074, 2048],
+];
+L.imageOverlay("./mapa-tras.jpg", bounds).addTo(panorama);
+panorama.fitBounds(bounds);
+const pin = L.circleMarker(stays[0].point, {
+  radius: 13,
+  color: "#fff",
+  weight: 3,
+  fillColor: "#b24f27",
+  fillOpacity: 1,
+}).addTo(panorama);
+function refreshMap(focus = false): void {
+  const stay = stays.find((s) => s.id === selected) ?? stays[0];
+  pin.setLatLng(stay.point);
+  pin
+    .unbindTooltip()
+    .bindTooltip(stay.name + " · okolica", { permanent: true, direction: "top", className: "lodging-label" });
+  pin.bindPopup(`<b>${stay.name}</b><br>${stay.area}<br>Orientacyjny rejon, bez rezerwacji.`);
+  el("map-stay").textContent = "Proponowana baza: " + stay.name + " · " + stay.area;
+  if (focus) panorama.setView(stay.point, 0);
 }
-function transportMap():void {
- const map=L.map('transport-map',{scrollWheelZoom:false});
- L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:18}).addTo(map);
- const nodes:{p:[number,number];name:string}[]=[{p:[45.72,5.08],name:'Lyon Saint-Exupéry · 15:25'},{p:[45.57,5.92],name:'Chambéry'},{p:[45.675,6.39],name:'Albertville'},{p:[45.485,6.533],name:'Moûtiers · możliwa zmiana autobusu'},{p:[45.326,6.537],name:'Les Menuires · Gare Routière'}];
- L.polyline(nodes.map(n=>n.p),{color:'#b24f27',weight:4,dashArray:'7 5'}).addTo(map);
- nodes.forEach((n,i)=>L.marker(n.p,{icon:L.divIcon({className:'route-pin',html:String(i+1),iconSize:[28,28]}),title:n.name}).addTo(map).bindPopup(n.name));
- map.fitBounds(L.latLngBounds(nodes.map(n=>n.p)),{padding:[30,30]});
+function transportMap(): void {
+  const map = L.map("transport-map", { scrollWheelZoom: false });
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 18,
+  }).addTo(map);
+  const nodes: { p: [number, number]; name: string }[] = [
+    { p: [45.72, 5.08], name: "Lyon Saint-Exupéry · 15:25" },
+    { p: [45.57, 5.92], name: "Chambéry" },
+    { p: [45.675, 6.39], name: "Albertville" },
+    { p: [45.485, 6.533], name: "Moûtiers · możliwa zmiana autobusu" },
+    { p: [45.326, 6.537], name: "Les Menuires · Gare Routière" },
+  ];
+  L.polyline(
+    nodes.map((n) => n.p),
+    { color: "#b24f27", weight: 4, dashArray: "7 5" },
+  ).addTo(map);
+  nodes.forEach((n, i) =>
+    L.marker(n.p, {
+      icon: L.divIcon({ className: "route-pin", html: String(i + 1), iconSize: [28, 28] }),
+      title: n.name,
+    })
+      .addTo(map)
+      .bindPopup(n.name),
+  );
+  map.fitBounds(L.latLngBounds(nodes.map((n) => n.p)), { padding: [30, 30] });
 }
-function refresh():void {
- el('budget').innerHTML=budget();el('comparison').innerHTML=comparison();el('loty').innerHTML=flights();
- el('loty').hidden=selfDrive;el('dojazd').hidden=selfDrive;el('own-travel').hidden=!selfDrive;
- document.querySelector<HTMLElement>('.route-strip')!.hidden=selfDrive;
- document.querySelector<HTMLAnchorElement>('nav a[href="#dojazd"],nav a[href="#own-travel"]')!.href=selfDrive?'#own-travel':'#dojazd';
- document.querySelectorAll<HTMLButtonElement>('[data-travel]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.travel==='own')===selfDrive)));
- el('stays').innerHTML=stays.filter(s=>s.parties.includes(party)).map(stayCard).join('');refreshMap();
- document.querySelectorAll<HTMLButtonElement>('[data-party]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.party)===party)));
- document.querySelectorAll<HTMLButtonElement>('[data-week]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.week===week)));
- document.querySelectorAll<HTMLButtonElement>('[data-pass]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.pass)===pass)));
+function refresh(): void {
+  el("budget").innerHTML = budget();
+  el("comparison").innerHTML = comparison();
+  el("loty").innerHTML = flights();
+  el("loty").hidden = selfDrive;
+  el("dojazd").hidden = selfDrive;
+  el("own-travel").hidden = !selfDrive;
+  document.querySelector<HTMLElement>(".route-strip")!.hidden = selfDrive;
+  document.querySelector<HTMLAnchorElement>('nav a[href="#dojazd"],nav a[href="#own-travel"]')!.href = selfDrive
+    ? "#own-travel"
+    : "#dojazd";
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-travel]")
+    .forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.travel === "own") === selfDrive)));
+  el("stays").innerHTML = stays
+    .filter((s) => s.parties.includes(party))
+    .map(stayCard)
+    .join("");
+  refreshMap();
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-party]")
+    .forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.party) === party)));
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-week]")
+    .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.week === week)));
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-pass]")
+    .forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.pass) === pass)));
 }
-el('app').addEventListener('click',event=>{
- const target=event.target as Element|null;const button=target?.closest?.<HTMLButtonElement>('button');if(!button)return;
- if(button.dataset.travel==='own'||button.dataset.travel==='flight'){selfDrive=button.dataset.travel==='own';refresh();}
- const count=Number(button.dataset.party);
- if([2,4,5,6].includes(count)){party=count as Party;if(!stays.find(s=>s.id===selected)?.parties.includes(party))selected='pelvoux';refresh();}
- if(button.dataset.week==='late'||button.dataset.week==='feb'||button.dataset.week==='febLate'||button.dataset.week==='march'){week=button.dataset.week;refresh();}
- if(button.dataset.stay&&stays.some(s=>s.id===button.dataset.stay&&s.parties.includes(party))){selected=button.dataset.stay;refresh();refreshMap(true);el('trasy').scrollIntoView({behavior:'smooth'});}
- if(button.dataset.pass==='421'||button.dataset.pass==='350'){pass=Number(button.dataset.pass);refresh();}
- if(button.dataset.direction){el('journey').innerHTML=journey(button.dataset.direction==='back');document.querySelectorAll('[data-direction]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));}
- if(button.id==='reset-map')panorama.fitBounds(bounds);
-},true);
-el('journey').innerHTML=journey();transportMap();refresh();
+el("app").addEventListener(
+  "click",
+  (event) => {
+    const target = event.target as Element | null;
+    const button = target?.closest?.<HTMLButtonElement>("button");
+    if (!button) return;
+    if (button.dataset.travel === "own" || button.dataset.travel === "flight") {
+      selfDrive = button.dataset.travel === "own";
+      refresh();
+    }
+    const count = Number(button.dataset.party);
+    if ([2, 4, 5, 6].includes(count)) {
+      party = count as Party;
+      if (!stays.find((s) => s.id === selected)?.parties.includes(party)) selected = "pelvoux";
+      refresh();
+    }
+    if (
+      button.dataset.week === "late" ||
+      button.dataset.week === "feb" ||
+      button.dataset.week === "febLate" ||
+      button.dataset.week === "march"
+    ) {
+      week = button.dataset.week;
+      refresh();
+    }
+    if (button.dataset.stay && stays.some((s) => s.id === button.dataset.stay && s.parties.includes(party))) {
+      selected = button.dataset.stay;
+      refresh();
+      refreshMap(true);
+      el("trasy").scrollIntoView({ behavior: "smooth" });
+    }
+    if (button.dataset.pass === "421" || button.dataset.pass === "350") {
+      pass = Number(button.dataset.pass);
+      refresh();
+    }
+    if (button.dataset.direction) {
+      el("journey").innerHTML = journey(button.dataset.direction === "back");
+      document
+        .querySelectorAll("[data-direction]")
+        .forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+    }
+    if (button.id === "reset-map") panorama.fitBounds(bounds);
+  },
+  true,
+);
+el("journey").innerHTML = journey();
+transportMap();
+refresh();
