@@ -1,3 +1,4 @@
+import { lodgingPrice, lodgingQuote } from "./lodging";
 export type Party = 2 | 4 | 5 | 6;
 export type Week = "late" | "feb" | "febLate" | "march";
 export const fx = { eur: 4.3, gbp: 5.1 };
@@ -50,8 +51,7 @@ export interface Stay {
   note: string;
   url: string;
   priceUrl?: string;
-  prices: Record<Week, number | null>;
-  point: [number, number];
+  point: [number, number] | null;
 }
 export const stays: Stay[] = [
   {
@@ -62,10 +62,9 @@ export const stays: Stay[] = [
     parties: [2, 4, 5, 6],
     beds: "Łóżko podwójne i łóżka piętrowe; dodatkowe spanie w salonie. Dla grupy akceptującej piętrowe łóżka.",
     access: "Przy stokach, w centrum La Croisette i głównych wyciągów.",
-    note: "Cennik właściciela za cały lokal, podzielony przez liczbę gości. Kalendarz właściciela odczytany 01.11.2026 oznacza wszystkie cztery porównywane terminy jako zajęte. Cena jest poglądowa, nie jest ofertą dostępnego noclegu. Sprzątanie, pościel, podatek, kaucja i anulowanie do potwierdzenia. Dla 2 osób wynajem dużego lokalu jest mniej opłacalny.",
+    note: "Warunki aktualnej wyceny podano poniżej dla wybranego terminu i liczby osób.",
     url: "https://lesmenuires-location.com/appartement-a-louer-le-pelvoux-les-menuires-3-vallees-t3-68-pers-pied-pistes/",
     priceUrl: "https://lesmenuires-location.com/tarifs-disponibilites-pelvoux/",
-    prices: { late: 1150, feb: 1790, febLate: 1890, march: 1050 },
     point: [427, 1460],
   },
   {
@@ -76,10 +75,9 @@ export const stays: Stay[] = [
     parties: [2, 4, 5, 6],
     beds: "Łóżko podwójne, 2 pojedyncze, kabina z łóżkiem piętrowym, sofa. Niska antresola nie jest liczona jako miejsce dla dorosłego.",
     access: "Zielona trasa przy budynku; zjazd do Doron / Reberty. Dostęp przez stok, nie potwierdzony dystans pieszy.",
-    note: "Cennik właściciela. Kalendarz odczytany 01.11.2026 oznacza wszystkie cztery porównywane terminy jako zajęte. Cena jest poglądowa, nie jest ofertą dostępnego noclegu. Dodatki i anulowanie do potwierdzenia. Sklepy La Croisette ok. 400 m według właściciela.",
+    note: "Warunki aktualnej wyceny podano poniżej dla wybranego terminu i liczby osób.",
     url: "https://lesmenuires-location.com/appartement-a-louer-le-jettay-les-menuires-3-vallees-t3-68-pers-pied-pistes/",
     priceUrl: "https://lesmenuires-location.com/tarifs-disponibilites-jettay/",
-    prices: { late: 1150, feb: 1790, febLate: 1890, march: 1050 },
     point: [407, 1455],
   },
   {
@@ -90,9 +88,8 @@ export const stays: Stay[] = [
     parties: [2, 4, 5, 6],
     beds: "Dla pary studio; dla grupy większy apartament. Układ łóżek zależy od kategorii — sprawdź liczbę sof.",
     access: "Przy stokach; ok. 100 m od La Croisette przez windę według operatora.",
-    note: "Pościel i ręczniki w ofercie operatora. Podatek lokalny i opcjonalne sprzątanie osobno; kaucja 300 €. Warunki zależą od taryfy.",
+    note: "Warunki aktualnej wyceny podano poniżej dla wybranego terminu i liczby osób.",
     url: "https://www.sowell.fr/en/residence-pierre-blanche/",
-    prices: { late: null, feb: null, febLate: null, march: null },
     point: [444, 1445],
   },
   {
@@ -103,9 +100,8 @@ export const stays: Stay[] = [
     parties: [2, 4, 5, 6],
     beds: "Sypialnia + salon lub większy apartament. Dla 2 osób trzeba wycenić lokal 4-osobowy.",
     access: "Wyjście na stok; piesze centrum Les Bruyères.",
-    note: "W opisie pościel, ręczniki i sprzątanie poza aneksem. Podatek osobno; anulowanie zależne od oferty.",
+    note: "Warunki aktualnej wyceny podano poniżej dla wybranego terminu i liczby osób.",
     url: "https://reservation.les3vallees.com/en/product-6645-residence-aconit",
-    prices: { late: null, feb: null, febLate: null, march: null },
     point: [468, 1458],
   },
   {
@@ -116,9 +112,8 @@ export const stays: Stay[] = [
     parties: [2, 4, 5, 6],
     beds: "Dla 2 osób studio; dla 4–5 lokal 5-osobowy; dla 6 większy apartament. Układ łóżek w rezerwacji.",
     access: "Przy trasach według katalogu turystycznego. Dokładne dojście do wyciągu do sprawdzenia.",
-    note: "W opisie pościel i ręczniki; sprzątanie i podatek osobno. Warunki anulowania do sprawdzenia.",
+    note: "Warunki aktualnej wyceny podano poniżej dla wybranego terminu i liczby osób.",
     url: "https://reservation.les3vallees.com/en/product-6938-residence-les-combes",
-    prices: { late: null, feb: null, febLate: null, march: null },
     point: [455, 1440],
   },
   {
@@ -129,9 +124,8 @@ export const stays: Stay[] = [
     parties: [2, 4, 5, 6],
     beds: "Dla 4 lokal 4-osobowy; dla 5–6 lokal 6-osobowy, 1 sypialnia + alkowa lub 2 sypialnie. Dla pary większy lokal.",
     access: "Bezpośredni dostęp do tras z rezydencji.",
-    note: "Pościel, ręczniki, basen i wellness w opisie zimowym. Cena i dodatki zależne od apartamentu.",
+    note: "Warunki aktualnej wyceny podano poniżej dla wybranego terminu i liczby osób.",
     url: "https://reservation.les3vallees.com/en/product-6943-residence-les-alpages-de-reberty",
-    prices: { late: null, feb: null, febLate: null, march: null },
     point: [465, 1418],
   },
   {
@@ -139,28 +133,86 @@ export const stays: Stay[] = [
     name: "Le Hameau de la Sapinière",
     area: "Reberty / La Sapinière",
     capacity: "Apartamenty 4–10 osób",
-    parties: [4, 5, 6],
+    parties: [2, 4, 5, 6],
     beds: "Większe apartamenty w stylu chalet. Wybierz liczbę oddzielnych sypialni odpowiadającą grupie.",
     access: "U podnóża tras; ok. 10 minut pieszo do centrum.",
-    note: "Pościel, ręczniki i zestaw kuchenny w opisie. Cena, podatek i anulowanie wymagają wyboru lokalu.",
+    note: "Warunki aktualnej wyceny podano poniżej dla wybranego terminu i liczby osób.",
     url: "https://www.le-hameau-de-la-sapiniere.com/appartement-chalet/",
-    prices: { late: null, feb: null, febLate: null, march: null },
     point: [448, 1427],
   },
   {
     id: "vallon",
-    name: "Chalet du Mont Vallon",
+    name: "Résidence Le Chalet du Mont Vallon",
     area: "Les Bruyères",
-    capacity: "Suites i apartamenty · warianty dla 2–6 dorosłych",
+    capacity: "Apartamenty rezydencji · liczba dorosłych zależy od taryfy",
     parties: [2, 4, 5, 6],
-    beds: "Dla 5–6 dorosłych sprawdź Prestige. Mniejsze suites mają czasem miejsca dla dzieci, nie dorosłych.",
+    beds: "Apartamenty z kuchnią. W marcu dostępne taryfy mieszczą maksymalnie 4 dorosłych, nawet jeśli nazwa lokalu mówi o 6 osobach.",
     access: "Rezydencja u podnóża tras.",
-    note: "Wybierz formułę apartamentową, jeśli chcecie kuchnię. W formule hotelowej wyposażenie kuchni nie jest udostępniane. Wyżywienie to osobny wariant.",
-    url: "https://www.hotel-montvallon-menuires.com/",
-    prices: { late: null, feb: null, febLate: null, march: null },
+    note: "Warunki aktualnej wyceny podano poniżej dla wybranego terminu i liczby osób.",
+    url: "https://www.booking.com/hotel/fr/ra-c-sidence-le-chalet-du-mont-vallon.en-gb.html",
     point: [478, 1443],
   },
+  {
+    id: "confortable",
+    name: "Appartement confortable Les Belleville 40 m² avec vue montagne",
+    area: "Les Belleville · lokalizacja do sprawdzenia",
+    capacity: "40 m² · do 5 osób",
+    parties: [2, 4, 5],
+    beds: "Sypialnia z łóżkiem podwójnym; pojedyncze łóżko i sofa w salonie.",
+    access:
+      "Opis oferty: blisko tras. Dokładny adres, dojście do wyciągu i położenie na panoramie wymagają sprawdzenia.",
+    note: "Cena dotyczy jednego całego lokalu na 7 nocy, bez skipassa.",
+    url: "https://www.booking.com/hotel/fr/appartement-d-une-chambre-a-les-belleville-a-100-m-des-pistes-avec-terrasse-amen.en-gb.html",
+    point: null,
+  },
+  {
+    id: "studioCabine",
+    name: "Studio cabine 4 pers. proche pistes avec balcon et parking",
+    area: "Les Menuires · lokalizacja do sprawdzenia",
+    capacity: "24 m² · do 4 osób",
+    parties: [2, 4],
+    beds: "Sofa i łóżko piętrowe według gospodarza; podsumowanie łóżek w serwisie jest niespójne.",
+    access:
+      "Opis oferty: blisko tras. Dokładny adres, dojście do wyciągu i położenie na panoramie wymagają sprawdzenia.",
+    note: "Cena dotyczy jednego całego lokalu na 7 nocy, bez skipassa.",
+    url: "https://www.booking.com/hotel/fr/studio-les-menuires-2-pieces-4-personnes-fr-1-344-863.en-gb.html",
+    point: null,
+  },
+  {
+    id: "median005",
+    name: "Apartment Médian 005 by Interhome",
+    area: "Les Menuires · Médian",
+    capacity: "24 m² · do 4 osób",
+    parties: [2, 4],
+    beds: "Sypialnia z łóżkiem piętrowym i sofa w salonie.",
+    access:
+      "Opis oferty: blisko tras. Dokładny adres, dojście do wyciągu i położenie na panoramie wymagają sprawdzenia.",
+    note: "Cena dotyczy jednego całego lokalu na 7 nocy, bez skipassa.",
+    url: "https://www.booking.com/hotel/fr/appartement-le-median-5.en-gb.html",
+    point: null,
+  },
+  {
+    id: "balcons",
+    name: "Apartment Balcons D’Olympie by Interhome",
+    area: "Les Menuires · Balcons d’Olympie",
+    capacity: "25 m² · do 4 osób",
+    parties: [2, 4],
+    beds: "Dwa pojedyncze łóżka w sypialni i sofa w salonie.",
+    access:
+      "Opis oferty: blisko tras. Dokładny adres, dojście do wyciągu i położenie na panoramie wymagają sprawdzenia.",
+    note: "Cena dotyczy jednego całego lokalu na 7 nocy, bez skipassa.",
+    url: "https://www.booking.com/hotel/fr/apartment-balcons-d-olympie-by-interhome.en-gb.html",
+    point: null,
+  },
 ];
+export function stayPrice(stay: Stay, week: Week, party: Party): number | null {
+  return lodgingPrice(lodgingQuote(stay.id, week, party));
+}
+export function availableStays(week: Week, party: Party): Stay[] {
+  return stays
+    .filter((stay) => stay.parties.includes(party) && stayPrice(stay, week, party) !== null)
+    .sort((a, b) => stayPrice(a, week, party)! - stayPrice(b, week, party)!);
+}
 export const sources = {
   bus: "https://www.bensbus.co.uk/ski-transfer/lyon-airport-to-les-menuires/",
   busBooking: "https://bookings.bensbus.co.uk/bookings/create",

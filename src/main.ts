@@ -1,8 +1,11 @@
+import { escapeHtml, flexiblePrice, lodgingDetails, lodgingQuote, lodgingStatus } from "./lodging";
 import { dateComparison, ownTravelComparison } from "./date-comparison";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./style.css";
 import {
+  availableStays,
+  stayPrice,
   baseFares,
   flightFareDate,
   flightFareNote,
@@ -49,7 +52,7 @@ function costRow(name: string, amount: string, note: string): string {
 }
 function budget(): string {
   const stay = stays.find((s) => s.id === selected) ?? stays[0];
-  const room = stay.prices[week];
+  const room = stayPrice(stay, week, party);
   const flight = flightCost(week);
   const bus = busCost() * fx.gbp;
   const total = room !== null ? (room * fx.eur) / party + pass * fx.eur + (selfDrive ? 0 : flight + bus) : null;
@@ -62,7 +65,7 @@ function budget(): string {
     costRow(
       stay.name,
       room === null ? "Do sprawdzenia" : pln((room * fx.eur) / party),
-      `7 nocy · ${party} os. w lokalu · bez wyżywienia. ${room === null ? "Brak wyceny na wybrany termin." : "Cennik poglądowy: Pelvoux/Jettay zajęte według odczytu 01.11.2026; sprawdź dostępny zamiennik."}`,
+      `7 nocy · ${party} os. w lokalu · bez wyżywienia. ${room === null ? "Brak wyceny na wybrany termin." : `${format(room)} € za cały lokal. Odczyt 01.11.2026 w sesji Genius; cena może zależeć od uprawnień, dostępność może się zmienić.`}`,
     ),
     costRow(
       pass === 421 ? "Skipass Les 3 Vallées" : "Skipass Les Menuires–Saint-Martin",
@@ -132,8 +135,10 @@ function journey(back = false): string {
   return `<ol class="timeline">${steps.map(([time, name, note]) => `<li><time>${time}</time><h3>${name}</h3><p>${note}</p></li>`).join("")}</ol>`;
 }
 function stayCard(stay: Stay, index: number): string {
-  const price = stay.prices[week];
-  return `<article class="stay ${selected === stay.id ? "chosen" : ""}"><div class="stay-top"><span class="number">${String(index + 1).padStart(2, "0")}</span><div><p class="eyebrow">${stay.area}</p><h3>${stay.name}</h3></div><span class="capacity">${stay.capacity}</span></div><p class="access">↗ ${stay.access}</p><p>${stay.beds}</p><div class="stay-price"><div><small>${party} os. · 7 nocy · na osobę</small><strong>${price === null ? "Do sprawdzenia" : pln((price * fx.eur) / party)}</strong><small>${price === null ? "Brak potwierdzonej ceny na wybrane daty" : format(price / party, 2) + " € / osoba · według cennika"}</small></div><button class="button ${selected === stay.id ? "dark" : "outline"}" data-stay="${stay.id}" aria-pressed="${selected === stay.id}">${selected === stay.id ? "Wybrany nocleg" : "Wybierz i pokaż na mapie"}</button></div><details><summary>Co obejmuje oferta i co sprawdzić</summary><p>${stay.note}</p></details><div class="links compact">${link(stay.url, "Opis obiektu")}${stay.priceUrl ? link(stay.priceUrl, "Cennik właściciela") : ""}${link(lodgingSearch(stay, week, party), `Szukaj dla ${party} os. · ${weeks[week].label}`)}</div></article>`;
+  const quote = lodgingQuote(stay.id, week, party);
+  const price = stayPrice(stay, week, party);
+  const flexible = flexiblePrice(quote);
+  return `<article class="stay ${selected === stay.id ? "chosen" : ""}"><div class="stay-top"><span class="number">${String(index + 1).padStart(2, "0")}</span><div><p class="eyebrow">${escapeHtml(stay.area)}</p><h3>${escapeHtml(stay.name)}</h3></div><span class="capacity">${escapeHtml(stay.capacity)}</span></div><p class="access">↗ ${escapeHtml(stay.access)}</p><p>${escapeHtml(stay.beds)}</p><div class="stay-price"><div><small>${party} dorosłych · 1 lokal · 7 nocy · na osobę</small><strong>${price === null ? lodgingStatus(quote) : pln((price * fx.eur) / party)}</strong><small>${price === null ? "Brak kwoty w budżecie" : `${format(price)} € za cały lokal · ${format(price / party, 2)} € / osoba`}</small></div><button class="button ${selected === stay.id ? "dark" : "outline"}" data-stay="${stay.id}" aria-pressed="${selected === stay.id}" ${price === null ? "disabled" : ""}>${selected === stay.id ? "Wybrany nocleg" : price === null ? "Brak aktualnej oferty" : "Wybierz nocleg"}</button></div><details><summary>Warunki, opłaty i data sprawdzenia</summary><p>${escapeHtml(lodgingDetails(quote))}</p>${flexible === null ? "" : `<p>Taryfa z możliwością anulowania: ${format(flexible)} € za lokal. Termin i warunki anulowania sprawdź w ofercie.</p>`}</details><div class="links compact">${link(stay.url, "Opis obiektu")}${quote ? link(escapeHtml(quote.source), quote.status === "unverified" ? "Sprawdź termin i grupę" : "Sprawdzona oferta · wybrany termin i grupa") : link(lodgingSearch(stay, week, party), "Sprawdź termin i grupę")}</div></article>`;
 }
 function ski(): string {
   return `<section class="section" id="trasy">${title("05 / NASZE TERENY", "Rano wybierasz dolinę.", "Twoja mapa tras, z zaznaczoną orientacyjną okolicą wybranego noclegu. Powiększ, aby obejrzeć połączenia.")}<div class="map-heading"><p id="map-stay"></p><button id="reset-map" class="button outline">Pokaż całe 3 Vallées</button></div><div id="piste-map" aria-label="Interaktywna mapa tras 3 Vallées z proponowanym noclegiem"></div><p class="footnote">Znacznik pokazuje orientacyjny rejon bazy na rysunkowej panoramie, nie dokładny adres ani odległość do wyciągu. Nocleg jest propozycją, bez rezerwacji. ${link("./mapa-tras.jpg", "Otwórz mapę w pełnej rozdzielczości")}</p><div class="pass-grid"><button class="pass-card" data-pass="421" aria-pressed="true"><span>CAŁY REGION</span><h3>Les 3 Vallées</h3><strong>421 € <small>/ osoba</small></strong><p>6 dni · ${pln(421 * fx.eur)} · cena katalogowa 2026/27.<br>Les Menuires, Val Thorens, Méribel i Courchevel. Wariant bazowy dla wycieczek po regionie.</p></button><button class="pass-card" data-pass="350" aria-pressed="false"><span>WARIANT LOKALNY</span><h3>Les Menuires–Saint-Martin</h3><strong>350 € <small>/ osoba</small></strong><p>6 dni · ${pln(350 * fx.eur)} · oszczędzasz ${pln(71 * fx.eur)}.<br>Bez Val Thorens, Méribel i Courchevel. Dobry, jeśli chcecie jeździć blisko bazy.</p></button></div><p class="footnote">Ceny dla dorosłych; bez ubezpieczenia i ewentualnego nośnika. *600 km to deklarowana sieć całych 3 Vallées, nie gwarancja otwarcia wszystkich tras. Połączenia zależą od wiatru i warunków. ${link(sources.pass, "Oficjalny cennik 2026/27")} · ${link(sources.passBuy, "Kup skipass")}</p></section>`;
@@ -150,11 +155,11 @@ function weekPlan(): string {
   return `<section class="section tinted">${title("06 / RYTM TYGODNIA", "Sześć dni, własne tempo.", "Sobota na dojazd, niedziela–piątek na snowboard, kolejna sobota na powrót.")}<div class="days">${days.map(([day, name, note], i) => `<article><span class="number">0${i + 1}</span><p class="eyebrow">${day}</p><h3>${name}</h3><p>${note}</p></article>`).join("")}</div><p class="footnote">Przy lokalnym skipassie zastąpcie wycieczki do innych dolin jazdą w Les Menuires i Saint-Martin. Plan dopasujcie do umiejętności najsłabszej osoby oraz otwartych tras.</p></section>`;
 }
 function sourceSection(): string {
-  return `<section class="section sources"><p class="eyebrow">LOTY ${flightFareDate} · POZOSTAŁE DANE: WRZESIEŃ 2026</p><h2>Źródła, nie drobny druk.</h2><div class="links">${link(sources.bus, "Ben’s Bus · trasa i sezon")}${link(sources.busBooking, "Ben’s Bus · godziny i opłaty")}${link(sources.busBags, "Ben’s Bus · bagaże")}${link(sources.pass, "Skipassy 2026/27")}${link("https://lesmenuires.com/en", "Ośrodek i aktualne warunki")}${link("https://lesmenuires-location.com/", "Pelvoux i Jettay · właściciel")}</div><p>Plan podróży dla dorosłych, bez dokonanych rezerwacji. ${flightFareNote} Ceny lotów i noclegów mogą się zmienić. Cennik nie oznacza dostępności. Przed zakupem potwierdź komplet: lot z bagażem, zgodny transfer, nocleg i połączenie kolejowe. Linki wyszukiwania noclegów mają daty i liczbę osób, ale mogą pokazać inne obiekty — sprawdź nazwę.</p></section><footer><b>▲ ALPY / 27</b><span>Les Menuires · plan dla ekipy</span><a href="#koszty">Wróć do kosztów ↑</a></footer>`;
+  return `<section class="section sources"><p class="eyebrow">LOTY ${flightFareDate} · NOCLEGI 01.11.2026</p><h2>Źródła, nie drobny druk.</h2><div class="links">${link("./noclegi-2026-11-01.md", "Noclegi · wyniki sprawdzenia")}${link("./noclegi-2026-11-01.json", "Wyceny noclegów · dane")}${link(sources.bus, "Ben’s Bus · trasa i sezon")}${link(sources.busBooking, "Ben’s Bus · godziny i opłaty")}${link(sources.busBags, "Ben’s Bus · bagaże")}${link(sources.pass, "Skipassy 2026/27")}${link("https://lesmenuires.com/en", "Ośrodek i aktualne warunki")}${link("https://lesmenuires-location.com/", "Pelvoux i Jettay · właściciel")}</div><p>Plan podróży dla dorosłych, bez dokonanych rezerwacji. ${flightFareNote} Ceny lotów i noclegów mogą się zmienić. Cennik nie oznacza dostępności. Przed zakupem potwierdź komplet: lot z bagażem, zgodny transfer, nocleg i połączenie kolejowe. Linki wyszukiwania noclegów mają daty i liczbę osób, ale mogą pokazać inne obiekty — sprawdź nazwę.</p></section><footer><b>▲ ALPY / 27</b><span>Les Menuires · plan dla ekipy</span><a href="#koszty">Wróć do kosztów ↑</a></footer>`;
 }
 el("app").innerHTML =
   hero() +
-  `<main>${controls()}<section class="section" id="own-travel" hidden><h2>Dojazd własny</h2><p>Kalkulator obejmuje 7 noclegów i 6-dniowy skipass. Paliwo, opłaty drogowe, parking i inne koszty samochodu pozostają poza wyceną.</p></section><section class="section" id="loty"></section>${travel()}<section class="section" id="noclegi">${title("04 / BAZA PRZY STOKACH", "Gdzie śpimy?", "Propozycje dla 2, 4, 5 i 6 osób. Dwa lokale mają cenniki na konkretne tygodnie; pozostałe wymagają wyceny.")}<p class="notice">Szukamy dostępu do tras przy obiekcie. Opis „przy stoku” nie potwierdza zimowego dojścia pieszo maks. 500 m do wyciągu. Przed rezerwacją sprawdź dokładny lokal i trasę z pokrowcem. Dla pary cel to do 2 000 zł/os. za 7 nocy; duże apartamenty mogą ten budżet przekroczyć.</p><div id="stays" class="stays"></div></section>${ski()}${weekPlan()}${sourceSection()}</main>`;
+  `<main>${controls()}<section class="section" id="own-travel" hidden><h2>Dojazd własny</h2><p>Kalkulator obejmuje 7 noclegów i 6-dniowy skipass. Paliwo, opłaty drogowe, parking i inne koszty samochodu pozostają poza wyceną.</p></section><section class="section" id="loty"></section>${travel()}<section class="section" id="noclegi">${title("04 / BAZA PRZY STOKACH", "Gdzie śpimy?", "Wyceny dla 2, 4, 5 i 6 dorosłych z 01.11.2026. Cena dotyczy jednego całego lokalu na 7 nocy. Odczyt w sesji Genius może zależeć od uprawnień.")}<p class="notice">Szukamy dostępu do tras przy obiekcie. Opis „przy stoku” nie potwierdza zimowego dojścia pieszo maks. 500 m do wyciągu. Przed rezerwacją sprawdź dokładny lokal i trasę z pokrowcem. Dla pary cel to do 2 000 zł/os. za 7 nocy; duże apartamenty mogą ten budżet przekroczyć.</p><div id="stays" class="stays"></div></section>${ski()}${weekPlan()}${sourceSection()}</main>`;
 
 const panorama = L.map("piste-map", {
   crs: L.CRS.Simple,
@@ -169,7 +174,7 @@ const bounds: L.LatLngBoundsExpression = [
 ];
 L.imageOverlay("./mapa-tras.jpg", bounds).addTo(panorama);
 panorama.fitBounds(bounds);
-const pin = L.circleMarker(stays[0].point, {
+const pin = L.circleMarker(stays[0].point ?? [0, 0], {
   radius: 13,
   color: "#fff",
   weight: 3,
@@ -178,7 +183,13 @@ const pin = L.circleMarker(stays[0].point, {
 }).addTo(panorama);
 function refreshMap(focus = false): void {
   const stay = stays.find((s) => s.id === selected) ?? stays[0];
-  pin.setLatLng(stay.point);
+  if (!stay.point) {
+    pin.remove();
+    el("map-stay").textContent = stay.name + " · brak potwierdzonego położenia na panoramie";
+    if (focus) panorama.fitBounds(bounds);
+    return;
+  }
+  pin.addTo(panorama).setLatLng(stay.point);
   pin
     .unbindTooltip()
     .bindTooltip(stay.name + " · okolica", { permanent: true, direction: "top", className: "lodging-label" });
@@ -214,6 +225,10 @@ function transportMap(): void {
   map.fitBounds(L.latLngBounds(nodes.map((n) => n.p)), { padding: [30, 30] });
 }
 function refresh(): void {
+  const current = stays.find((stay) => stay.id === selected);
+  if (!current || stayPrice(current, week, party) === null) {
+    selected = availableStays(week, party)[0]?.id ?? "";
+  }
   el("budget").innerHTML = budget();
   el("comparison").innerHTML = comparison();
   el("loty").innerHTML = flights();
@@ -229,6 +244,7 @@ function refresh(): void {
     .forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.travel === "own") === selfDrive)));
   el("stays").innerHTML = stays
     .filter((s) => s.parties.includes(party))
+    .sort((a, b) => (stayPrice(a, week, party) ?? Infinity) - (stayPrice(b, week, party) ?? Infinity))
     .map(stayCard)
     .join("");
   refreshMap();
@@ -247,7 +263,7 @@ el("app").addEventListener(
   (event) => {
     const target = event.target as Element | null;
     const button = target?.closest?.<HTMLButtonElement>("button");
-    if (!button) return;
+    if (!button || button.disabled) return;
     if (button.dataset.travel === "own" || button.dataset.travel === "flight") {
       selfDrive = button.dataset.travel === "own";
       refresh();
@@ -255,7 +271,7 @@ el("app").addEventListener(
     const count = Number(button.dataset.party);
     if ([2, 4, 5, 6].includes(count)) {
       party = count as Party;
-      if (!stays.find((s) => s.id === selected)?.parties.includes(party)) selected = "pelvoux";
+      selected = availableStays(week, party)[0]?.id ?? "";
       refresh();
     }
     if (
@@ -265,9 +281,10 @@ el("app").addEventListener(
       button.dataset.week === "march"
     ) {
       week = button.dataset.week;
+      selected = availableStays(week, party)[0]?.id ?? "";
       refresh();
     }
-    if (button.dataset.stay && stays.some((s) => s.id === button.dataset.stay && s.parties.includes(party))) {
+    if (button.dataset.stay && stays.some((s) => s.id === button.dataset.stay && stayPrice(s, week, party) !== null)) {
       selected = button.dataset.stay;
       refresh();
       refreshMap(true);
